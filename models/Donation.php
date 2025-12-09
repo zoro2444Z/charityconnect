@@ -13,15 +13,17 @@ class Donation {
 
     // CREATE donation
     public function create($data) {
-        $sql = "INSERT INTO donations (id_campaign, donor_name, amount)
-                VALUES (:id_campaign, :donor_name, :amount)";
+        // 👉 on ajoute user_id dans la requête
+        $sql = "INSERT INTO donations (id_campaign, donor_name, amount, user_id)
+                VALUES (:id_campaign, :donor_name, :amount, :user_id)";
         
         $stmt = $this->conn->prepare($sql);
 
         $result = $stmt->execute([
             ':id_campaign' => $data['id_campaign'],
             ':donor_name'  => $data['donor_name'],
-            ':amount'      => $data['amount']
+            ':amount'      => $data['amount'],
+            ':user_id'     => $data['user_id']   // vient de $_SESSION['user_id']
         ]);
 
         if ($result) {

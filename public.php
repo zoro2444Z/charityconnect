@@ -1,19 +1,19 @@
 <?php
-// public.php – page publique (front-office)
 
+session_start();
 require_once __DIR__ . "/models/Campaign.php";
 
 $model = new Campaign();
 $campaigns = $model->getAll();
 $totalCampaigns = count($campaigns);
 
-// total des dons collectés
+
 $totalCollected = 0;
 foreach ($campaigns as $c) {
     $totalCollected += $c['amount_collected'];
 }
 
-// message après un don
+
 $success = isset($_GET['success']) && $_GET['success'] == 1;
 ?>
 <!DOCTYPE html>
@@ -176,16 +176,16 @@ $success = isset($_GET['success']) && $_GET['success'] == 1;
             border-radius: 18px;
             padding: 24px;
             box-shadow: 0 8px 22px rgba(0,0,0,0.08);
-            height: 250px;            /* window that shows top half */
-            overflow: hidden;         /* hides bottom */
+            height: 250px;
+            overflow: hidden;
             display: flex;
             justify-content: center;
         }
 
         #poverty-globe {
             width: 100%;
-            height: 500px;            /* full globe canvas */
-            margin: 0 auto;           /* NO negative margin => see top part */
+            height: 500px;
+            margin: 0 auto;
             margin-top: 0;
         }
 
@@ -208,7 +208,21 @@ $success = isset($_GET['success']) && $_GET['success'] == 1;
         <a class="navbar-brand" href="public.php">
             <span>CharityConnect</span>
         </a>
-        <a href="index.php" class="btn btn-outline-light btn-sm">Espace administrateur</a>
+
+        <div class="d-flex align-items-center gap-2">
+            <a href="index.php" class="btn btn-outline-light btn-sm">Espace administrateur</a>
+
+            <?php if (!isset($_SESSION["user_id"])): ?>
+                <a href="login.php" class="btn btn-outline-light btn-sm">Connexion</a>
+                <a href="register.php" class="btn btn-primary btn-sm">Créer un compte</a>
+            <?php else: ?>
+                <span class="text-white small">
+                    Bonjour, <?= htmlspecialchars($_SESSION["user_name"]) ?>
+                </span>
+                <a href="history.php" class="btn btn-warning btn-sm">Mes dons</a>
+                <a href="logout.php" class="btn btn-outline-light btn-sm">Déconnexion</a>
+            <?php endif; ?>
+        </div>
     </div>
 </nav>
 
@@ -299,7 +313,7 @@ $success = isset($_GET['success']) && $_GET['success'] == 1;
 <!-- STATS -->
 <section class="py-5 bg-light">
     <div class="container fade-in-up">
-        <h2 class="section-title text-center mb-4">Notre impact (simulation)</h2>
+        <h2 class="section-title text-center mb-4">Notre impact </h2>
         <div class="row g-4 text-center">
             <div class="col-md-4">
                 <div class="stats-box">
@@ -371,10 +385,19 @@ $success = isset($_GET['success']) && $_GET['success'] == 1;
                                     <div class="progress-bar" style="width:<?= $pct ?>%;"></div>
                                 </div>
 
-                                <a href="index.php?action=donate&id=<?= $c['id_campaign'] ?>&from=public"
-                                   class="btn btn-primary mt-auto">
-                                    Faire un don
-                                </a>
+                                <?php if (!isset($_SESSION['user_id'])): ?>
+                                    <!-- Pas connecté : rediriger vers la page de connexion -->
+                                    <a href="login.php?must_login=1"
+                                       class="btn btn-primary mt-auto">
+                                        Faire un don
+                                    </a>
+                                <?php else: ?>
+                                    <!-- Connecté : aller au formulaire de don -->
+                                    <a href="index.php?action=donate&id=<?= $c['id_campaign'] ?>&from=public"
+                                       class="btn btn-primary mt-auto">
+                                        Faire un don
+                                    </a>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -413,21 +436,13 @@ $success = isset($_GET['success']) && $_GET['success'] == 1;
 <!-- GLOBE SECTION -->
 <section class="py-5">
     <div class="container fade-in-up">
-        <!-- CHANGED TITLE & TEXT HERE -->
-        <h2 class="section-title text-center mb-3">Présence fictive de CharityConnect dans le monde</h2>
+        <h2 class="section-title text-center mb-3">Un regard sur les régions les plus fragiles</h2>
         <p class="text-center text-muted mb-4">
-            Cette sphère illustre, de façon fictive, les hubs CharityConnect répartis sur la planète,
-            là où notre plateforme pourrait être utilisée.
+            Sphère pédagogique montrant quelques zones fortement touchées par la pauvreté.
         </p>
-
         <div id="globe-wrapper">
             <div id="poverty-globe"></div>
         </div>
-
-        <!-- small legend (new, nothing removed) -->
-        <p class="text-center text-muted small mt-3">
-            Hubs (fictifs) : Tunis · Paris · Dakar · São Paulo · Amman · New Delhi · Jakarta.
-        </p>
     </div>
 </section>
 
@@ -450,7 +465,7 @@ $success = isset($_GET['success']) && $_GET['success'] == 1;
                     <h5 class="mb-3">Formulaire de contact (simulation)</h5>
                     <input type="text" class="form-control mb-2" placeholder="Votre nom">
                     <input type="email" class="form-control mb-2" placeholder="Votre e-mail">
-                    <textarea class="form-control mb-2" rows="3" placeholder="Votre message"></textarea>
+                    <textarea class="form-control mb-2" rows="3" placeholder="Votre message "></textarea>
                     <button class="btn btn-secondary w-100" disabled>Envoyer</button>
                 </div>
             </div>
@@ -460,7 +475,7 @@ $success = isset($_GET['success']) && $_GET['success'] == 1;
 
 <footer>
     <div class="container text-center">
-        CharityConnect · Plateforme de dons  · 2025
+        CharityConnect · Plateforme de dons · 2025
     </div>
 </footer>
 
@@ -485,21 +500,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<!-- GLOBE: metallic, top half, glowing hubs (only array changed) -->
+<!-- GLOBE: metallic, top half, glowing dots -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const el = document.getElementById('poverty-globe');
     if (!el || typeof Globe === 'undefined') return;
 
-    // CHANGED: points now = CharityConnect hubs (fictifs)
     const points = [
-        {lat: 36.8065, lng: 10.1815},   // Tunis (siège)
-        {lat: 48.8566, lng: 2.3522},    // Paris
-        {lat: 14.7167, lng: -17.4677},  // Dakar
-        {lat: -23.5505, lng: -46.6333}, // São Paulo
-        {lat: 31.9539, lng: 35.9106},   // Amman
-        {lat: 28.6139, lng: 77.2090},   // New Delhi
-        {lat: -6.2088, lng: 106.8456}   // Jakarta
+        {lat: 13.5, lng: 2.1},
+        {lat: 7.5,  lng: 20.7},
+        {lat: -3.4, lng: 29.9},
+        {lat: 27.7, lng: 85.3},
+        {lat: 18.0, lng: 102.6},
+        {lat: -17.8,lng: 31.0}
     ];
 
     const world = Globe()
@@ -507,8 +520,6 @@ document.addEventListener('DOMContentLoaded', function () {
         .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
         .backgroundColor('rgba(0,0,0,0)')
         .showAtmosphere(false)
-
-        // glowing dots only (no text)
         .labelsData(points)
         .labelLat('lat')
         .labelLng('lng')
@@ -526,11 +537,9 @@ document.addEventListener('DOMContentLoaded', function () {
     resize();
     window.addEventListener('resize', resize);
 
-    // camera slightly above the northern hemisphere (unchanged)
     world.pointOfView({ lat: 35, lng: -20, altitude: 1.9 }, 0);
     world.controls().autoRotate = true;
     world.controls().autoRotateSpeed = 0.7;
-    
 });
 </script>
 
